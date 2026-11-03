@@ -1,0 +1,67 @@
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+body { background-color: #f8fafc; color: #1e293b; line-height: 1.6; }
+
+/* Navbar */
+.navbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 24px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; }
+.nav-menu { display: flex; gap: 24px; align-items: center; list-style: none; }
+.nav-link { color: #475569; text-decoration: none; font-weight: 600; font-size: 14px; transition: color 0.2s; }
+.nav-link:hover { color: #2563eb; }
+.btn-login-nav { background: #f1f5f9; color: #1e3a8a; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: 0.2s; }
+.btn-login-nav:hover { background: #e2e8f0; }
+
+/* Hero Section */
+.hero { max-width: 1200px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: flex-start; }
+.hero-text h1 { font-size: 42px; color: #0f172a; line-height: 1.2; font-weight: 800; margin-bottom: 16px; }
+.hero-text p { font-size: 18px; color: #64748b; margin-bottom: 24px; }
+.hero-badges { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: #166534; font-weight: 600; }
+
+/* Card Formulario */
+.simulator-card { background: #ffffff; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; padding: 28px; }
+.simulator-card h3 { font-size: 20px; color: #1e3a8a; margin-bottom: 20px; border-bottom: 2px solid #eff6ff; padding-bottom: 10px; }
+
+/* Panel de Resumen de Moto */
+.moto-summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: #166534; font-weight: 600; }
+.summary-row input { width: 140px; padding: 6px; text-align: right; border: 1px solid #a7f3d0; border-radius: 6px; font-weight: 700; color: #15803d; }
+.summary-divider { border-top: 1px dashed #a7f3d0; margin: 8px 0; padding-top: 8px; }
+.alert-error { color: #dc2626; font-size: 11px; font-weight: 600; margin-top: 6px; display: none; }
+
+/* Form Elements */
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+input[type="text"], input[type="tel"], input[type="number"], select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; background: white; }
+input:focus, select:focus { border-color: #2563eb; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Cédula Upload */
+.id-upload-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.upload-box { border: 2px dashed #94a3b8; border-radius: 10px; padding: 12px; text-align: center; background: #f8fafc; cursor: pointer; transition: 0.2s; }
+.upload-box:hover { border-color: #2563eb; background: #eff6ff; }
+.upload-icon { font-size: 18px; }
+.upload-box p { font-size: 11px; color: #64748b; margin-top: 4px; }
+.file-input { display: none; }
+.preview-img { max-width: 100%; max-height: 70px; border-radius: 6px; margin-top: 6px; display: none; }
+
+/* Ingresos Familiares */
+.family-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-top: 16px; }
+.family-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.family-title { font-size: 13px; font-weight: 700; color: #1e293b; }
+.family-fields { display: none; }
+
+/* Botón Principal */
+.btn-apply { display: block; width: 100%; text-align: center; background: #2563eb; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 20px; transition: background 0.2s; }
+.btn-apply:hover { background: #1d4ed8; }
+
+/* Confianza */
+.trust-section { background: #ffffff; border-top: 1px solid #e2e8f0; padding: 60px 20px; margin-top: 60px; }
+.trust-container { max-width: 1200px; margin: 0 auto; text-align: center; }
+.trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 40px; }
+.trust-card { background: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; }
+.trust-card h4 { font-size: 18px; color: #1e3a8a; margin-bottom: 8px; }
+.trust-card p { font-size: 14px; color: #64748b; }
+
+@media (max-width: 768px) {
+  .hero { grid-template-columns: 1fr; }
+  .trust-grid { grid-template-columns: 1fr; }
+}

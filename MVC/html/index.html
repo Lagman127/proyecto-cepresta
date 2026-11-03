@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cepresta - Financia tu Moto en Minutos</title>
+  <!-- Enlace a la Vista de Estilos -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Header / Navbar -->
+  <header class="navbar">
+    <div class="logo">CEPRESTA</div>
+    <ul class="nav-menu">
+      <li><a href="#simulador" class="nav-link">Simulador</a></li>
+      <li><a href="#empresa" class="nav-link">¿Quiénes Somos?</a></li>
+      <li><a href="login.html" class="btn-login-nav">🔐 Acceso Administrativo</a></li>
+    </ul>
+  </header>
+
+  <!-- Hero Section + Calculadora -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Tu moto nueva, aprobada en menos de 5 segundos</h1>
+      <p>Calcula tu cuota inicial y solicita tu crédito de vehículo 100% digital, sin filas ni papeleo físico.</p>
+      <div class="hero-badges">
+        <span>⚡ Respuesta inmediata por WhatsApp</span>
+        <span>🔒 Proceso 100% Seguro</span>
+      </div>
+    </div>
+
+    <!-- Panel de Cálculo y Formulario -->
+    <div class="simulator-card" id="simulador">
+      <h3>🧮 Solicitud de Crédito de Vehículo</h3>
+      
+      <!-- Sección de Números y Cuota Inicial -->
+      <div class="moto-summary">
+        <div class="summary-row">
+          <span>Valor Moto ($):</span>
+          <input type="number" id="motoPrice" value="8000000">
+        </div>
+        <div class="summary-row">
+          <span>Trámites (SOAT/Matrícula):</span>
+          <input type="number" id="feesPrice" value="1200000">
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row">
+          <span>Valor Inicial ($):</span>
+          <input type="number" id="initialInput" value="2000000">
+        </div>
+        <div id="minWarning" class="alert-error">
+          ⚠️ La cuota inicial no puede ser menor al 20% del total ($<span id="minAmountLabel">0</span>).
+        </div>
+      </div>
+
+      <!-- Formulario de Captura de Datos -->
+      <form id="creditForm">
+        <div class="form-group">
+          <label for="fullname">Nombre y Apellidos *</label>
+          <input type="text" id="fullname" placeholder="Ej. Carlos Mendoza" required>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="idNumber">Número de CC *</label>
+            <input type="text" id="idNumber" placeholder="Ej. 1012345678" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">Celular (WhatsApp) *</label>
+            <input type="tel" id="phone" placeholder="Ej. 300 000 0000" required>
+          </div>
+        </div>
+
+        <!-- Subida Cédula Frontal y Trasera -->
+        <div class="form-group">
+          <label>Foto de la Cédula (Ambos Lados) *</label>
+          <div class="id-upload-container">
+            <!-- Frontal -->
+            <div class="upload-box" id="boxFront">
+              <span class="upload-icon">📷</span>
+              <p id="txtFront">Cédula Frontal</p>
+              <img id="previewFront" class="preview-img" alt="Frontal">
+            </div>
+            <input type="file" id="idFront" class="file-input" accept="image/*">
+
+            <!-- Trasera -->
+            <div class="upload-box" id="boxBack">
+              <span class="upload-icon">📸</span>
+              <p id="txtBack">Cédula Trasera</p>
+              <img id="previewBack" class="preview-img" alt="Trasera">
+            </div>
+            <input type="file" id="idBack" class="file-input" accept="image/*">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="income">Ingresos Mensuales *</label>
+            <input type="number" id="income" placeholder="$ 2.500.000" required>
+          </div>
+          <div class="form-group">
+            <label for="expenses">Egresos Mensuales *</label>
+            <input type="number" id="expenses" placeholder="$ 1.000.000" required>
+          </div>
+        </div>
+
+        <!-- Módulo Ingresos Familiares -->
+        <div class="family-section">
+          <div class="family-header">
+            <span class="family-title">👨‍👩‍👧 Ingresos Familiares (Opcional)</span>
+            <input type="checkbox" id="toggleFamily">
+          </div>
+
+          <div id="familyFields" class="family-fields">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="famRelation">Parentesco</label>
+                <select id="famRelation">
+                  <option value="Esposa">Esposa/Esposo</option>
+                  <option value="Padre">Padre/Madre</option>
+                  <option value="Hijo">Hijo/Hija</option>
+                  <option value="Hermano">Hermano/Hermana</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="famCC">CC Familiar</label>
+                <input type="text" id="famCC" placeholder="Ej. 1098765432">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="famName">Nombre Familiar</label>
+              <input type="text" id="famName" placeholder="Nombre completo">
+            </div>
+
+            <div class="form-group">
+              <label for="famActivity">Actividad Económica</label>
+              <input type="text" id="famActivity" placeholder="Ej. Empleado / Comerciante">
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="famIncome">Ingresos</label>
+                <input type="number" id="famIncome" placeholder="$ 0">
+              </div>
+              <div class="form-group">
+                <label for="famExpenses">Egresos</label>
+                <input type="number" id="famExpenses" placeholder="$ 0">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn-apply">Validar número por WhatsApp ➔</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Sección de Confianza -->
+  <section class="trust-section" id="empresa">
+    <div class="trust-container">
+      <h2>¿Por qué confiar en Cepresta?</h2>
+      <div class="trust-grid">
+        <div class="trust-card">
+          <h4>🚀 Evaluación Instantánea</h4>
+          <p>Nuestro motor analiza tu solicitud y te da pre-aprobación en tiempo real directamente en tu WhatsApp.</p>
+        </div>
+        <div class="trust-card">
+          <h4>📑 Sin Certificados Complejos</h4>
+          <p>Solo necesitas la foto de tu cédula por ambos lados y tus datos básicos de ingresos.</p>
+        </div>
+        <div class="trust-card">
+          <h4>🤝 Transparencia Total</h4>
+          <p>Conoce desde el primer segundo el valor exacto a financiar y la cuota inicial mínima requerida.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enlace al Controlador JS -->
+  <script src="js/main.js"></script>
+</body>
+</html>
