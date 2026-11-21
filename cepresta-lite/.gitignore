@@ -1,0 +1,6 @@
+node_modules/
+.env
+storage/cedulas_cifradas/*
+!storage/cedulas_cifradas/.gitkeep
+storage/pdfs_generados/*
+!storage/pdfs_generados/.gitkeep
