@@ -54,22 +54,92 @@ function encryptAndSaveFile(buffer, originalName, prefix) {
 //});
 
 // Endpoint 1: Generar y enviar código OTP por WhatsApp para firma digital
-app.post('/api/lite/enviar-otp', (req, res) => {
+// Endpoint 1: Generar y enviar código OTP por WhatsApp (Demo o Meta Cloud API)
+app.post('/api/lite/enviar-otp', async (req, res) => {
   const { celular } = req.body;
-  if (!celular) {
-    return res.status(400).json({ success: false, mensaje: 'Ingrese un número de celular válido.' });
+  if (!celular || celular.trim().length < 7) {
+    return res.status(400).json({ ok: false, error: 'Número de celular inválido.' });
   }
 
-  const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+  // Normalizar número a formato internacional Colombia (57 + 10 dígitos)
+  const digits = celular.replace(/\D/g, '');
+  const telefonoE164 = digits.startsWith('57') ? digits : `57${digits}`;
+
+  const codigo = String(Math.floor(100000 + Math.random() * 900000));
   otpStore.set(celular.trim(), {
     codigo,
-    expira: Date.now() + 10 * 60 * 1000
+    expira: Date.now() + 10 * 60 * 1000 // 10 minutos
   });
 
-  console.log(`[WhatsApp OTP Firma] Celular: ${celular} -> Código: ${codigo}`);
+  const mode = process.env.WHATSAPP_MODE || 'demo';
 
+  if (mode === 'meta') {
+    const token = process.env.META_WA_TOKEN;
+    const phoneId = process.env.META_WA_PHONE_ID;
+
+    if (!token || !phoneId) {
+      return res.status(500).json({ ok: false, error: 'Faltan credenciales META_WA_TOKEN o META_WA_PHONE_ID en el servidor.' });
+    }
+
+    try {
+      const templateName = process.env.META_WA_TEMPLATE || 'hello_world';
+      const payload = templateName === 'hello_world'
+        ? {
+            messaging_product: 'whatsapp',
+            to: telefonoE164,
+            type: 'template',
+            template: { name: 'hello_world', language: { code: 'en_US' } }
+          }
+        : {
+            messaging_product: 'whatsapp',
+            to: telefonoE164,
+            type: 'template',
+            template: {
+              name: templateName,
+              language: { code: 'es_CO' },
+              components: [
+                { type: 'body', parameters: [{ type: 'text', text: codigo }] },
+                { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: codigo }] }
+              ]
+            }
+          };
+
+      const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const metaData = await metaRes.json();
+      if (!metaRes.ok) {
+        console.error('⚠️ Error Meta WhatsApp API:', metaData);
+        return res.status(502).json({
+          ok: false,
+          error: metaData.error?.message || 'Error al enviar mensaje por Meta WhatsApp API.'
+        });
+      }
+
+      console.log(`✅ WhatsApp enviado vía Meta a ${telefonoE164} | OTP: ${codigo}`);
+      return res.json({
+        ok: true,
+        modo: 'meta',
+        mensaje: `Código de verificación enviado por WhatsApp al ${celular}.`,
+        ...(templateName === 'hello_world' ? { codigoDemo: codigo } : {})
+      });
+    } catch (err) {
+      console.error('⚠️ Error conexión Meta API:', err.message);
+      return res.status(500).json({ ok: false, error: 'No se pudo conectar con Meta WhatsApp API.' });
+    }
+  }
+
+  // Modo demo
+  console.log(`[WHATSAPP DEMO] Código OTP para ${celular}: ${codigo}`);
   return res.json({
-    success: true,
+    ok: true,
+    modo: 'demo',
     mensaje: `Código de firma enviado por WhatsApp al ${celular}.`,
     codigoDemo: codigo
   });
