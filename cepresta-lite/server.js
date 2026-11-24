@@ -39,19 +39,19 @@ function encryptAndSaveFile(buffer, originalName, prefix) {
   return fileName;
 }
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // Puerto 587 con STARTTLS (funciona sin bloqueos en Render)
-  requireTLS: true,
-  connectionTimeout: 8000, // Máximo 8 segundos para conectar
-  greetingTimeout: 8000,
-  socketTimeout: 10000,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+//const transporter = nodemailer.createTransport({
+  //host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  //port: Number(process.env.SMTP_PORT) || 587,
+  //secure: false, // Puerto 587 con STARTTLS (funciona sin bloqueos en Render)
+  //requireTLS: true,
+  //connectionTimeout: 8000, // Máximo 8 segundos para conectar
+  //greetingTimeout: 8000,
+  //socketTimeout: 10000,
+  //auth: {
+    //user: process.env.SMTP_USER,
+    //pass: process.env.SMTP_PASS
+  //}
+//});
 
 // Endpoint 1: Generar y enviar código OTP por WhatsApp para firma digital
 app.post('/api/lite/enviar-otp', (req, res) => {
@@ -350,17 +350,17 @@ app.post(
 
       otpStore.delete((d.telefonoCelular || '').trim());
 
-      // 6. Enviar correo automático con PDF adjunto (Referido va debajo de la constancia electrónica y huella SHA-256)
+      // 6. Enviar correo automático via API HTTPS (Resend - puerto 443 compatible con Render)
       let correoEnviado = false;
-      const tieneSmtpValido =
-        process.env.SMTP_USER &&
-        process.env.SMTP_PASS &&
-        !process.env.SMTP_USER.includes('tu_correo_emisor') &&
-        !process.env.SMTP_PASS.includes('tu_contrasena');
+      const resendApiKey = process.env.RESEND_API_KEY;
 
-      if (tieneSmtpValido) {
+      if (resendApiKey) {
         try {
           const nombreCompleto = `${d.nombres} ${d.primerApellido} ${d.segundoApellido || ''}`.trim();
+          const tipoDocFinal = d.tipoIdentificacion === 'Otro'
+            ? (d.otroTipoIdentificacion || 'Otro').toUpperCase()
+            : d.tipoIdentificacion;
+
           const bloqueReferido = (d.referidoNombre || d.referidoCedula)
             ? `<div style="background: #eff6ff; border-left: 4px solid #1e3a8a; padding: 10px 14px; margin-top: 14px;">
                 <strong>🤝 Referido por (Asesor / Comisionador / Freelancer):</strong><br>
@@ -369,42 +369,51 @@ app.post(
                </div>`
             : `<p style="margin-top: 14px; color: #64748b;"><strong>🤝 Referido por:</strong> Solicitud directa (sin referido)</p>`;
 
-          const tipoDocFinal = d.tipoIdentificacion === 'Otro'
-            ? (d.otroTipoIdentificacion || 'Otro').toUpperCase()
-            : d.tipoIdentificacion;
-
-          await transporter.sendMail({
-            from: `"Cepresta Solicitudes" <${process.env.SMTP_USER}>`,
-            to: process.env.NOTIFY_EMAIL_TO || 'ceprestasas@gmail.com',
-            subject: `Nueva Solicitud de Crédito Moto - ${nombreCompleto} (${radicado})`,
-            html: `
-              <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 620px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-                <h2 style="color: #1e3a8a; margin-top: 0;">Nueva Solicitud de Crédito Radicada</h2>
-                <p><strong>Radicado:</strong> ${radicado}</p>
-                <p><strong>Nombre del Cliente:</strong> ${nombreCompleto} (${tipoDocFinal}} ${d.numeroIdentificacion})</p>
-                <p><strong>Fecha y Hora de Inicio del Proceso:</strong> ${d.fechaInicioProceso}</p>
-                <p><strong>Cuota Inicial:</strong> $${cuotaInicial.toLocaleString('es-CO')} | <strong>Valor Solicitado:</strong> $${valorSolicitado.toLocaleString('es-CO')} | <strong>Valor Garantía:</strong> $${valorGarantia.toLocaleString('es-CO')}</p>
-                <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0;">
-                <p style="font-size: 12px; color: #334155;">
-                  <strong>Constancia de firma electrónica:</strong> Firmado el ${fechaFirmaStr} mediante OTP WhatsApp (${d.telefonoCelular})<br>
-                  <strong>Código de integridad SHA-256:</strong> <code>${hashSha256}</code>
-                </p>
-                ${bloqueReferido}
-                <p style="font-size: 12px; color: #475569; margin-top: 14px;">🔒 Cédulas cifradas AES-256 en servidor privado: <code>${encFront}</code> y <code>${encBack}</code></p>
-                <p>Se adjunta el formato oficial de solicitud en PDF.</p>
-              </div>
-            `,
-            attachments: [
-              {
-                filename: pdfFileName,
-                content: pdfBuffer,
-                contentType: 'application/pdf'
-              }
-            ]
+          const emailRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'Cepresta Solicitudes <onboarding@resend.dev>',
+              to: [process.env.NOTIFY_EMAIL_TO || 'dalejandrocla@gmail.com'],
+              subject: `Nueva Solicitud de Crédito Moto - ${nombreCompleto} (${radicado})`,
+              html: `
+                <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 620px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                  <h2 style="color: #1e3a8a; margin-top: 0;">Nueva Solicitud de Crédito Radicada</h2>
+                  <p><strong>Radicado:</strong> ${radicado}</p>
+                  <p><strong>Nombre del Cliente:</strong> ${nombreCompleto} (${tipoDocFinal} ${d.numeroIdentificacion})</p>
+                  <p><strong>Fecha y Hora de Inicio del Proceso:</strong> ${d.fechaInicioProceso}</p>
+                  <p><strong>Cuota Inicial:</strong> $${cuotaInicial.toLocaleString('es-CO')} | <strong>Valor Solicitado:</strong> $${valorSolicitado.toLocaleString('es-CO')} | <strong>Valor Garantía:</strong> $${valorGarantia.toLocaleString('es-CO')}</p>
+                  <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0;">
+                  <p style="font-size: 12px; color: #334155;">
+                    <strong>Constancia de firma electrónica:</strong> Firmado el ${fechaFirmaStr} mediante OTP WhatsApp (${d.telefonoCelular})<br>
+                    <strong>Código de integridad SHA-256:</strong> <code>${hashSha256}</code>
+                  </p>
+                  ${bloqueReferido}
+                  <p style="font-size: 12px; color: #475569; margin-top: 14px;">🔒 Cédulas cifradas AES-256 en servidor privado: <code>${encFront}</code> y <code>${encBack}</code></p>
+                  <p>Se adjunta el formato oficial de solicitud en PDF.</p>
+                </div>
+              `,
+              attachments: [
+                {
+                  filename: pdfFileName,
+                  content: pdfBuffer.toString('base64')
+                }
+              ]
+            })
           });
-          correoEnviado = true;
+
+          const emailData = await emailRes.json();
+          if (emailRes.ok) {
+            correoEnviado = true;
+            console.log('✅ Correo enviado vía Resend ID:', emailData.id);
+          } else {
+            console.error('⚠️ Error Resend API:', emailData);
+          }
         } catch (mailErr) {
-          console.error('⚠️ Advertencia SMTP (el PDF sí se generó):', mailErr.message);
+          console.error('⚠️ Error enviando correo:', mailErr.message);
         }
       }
 
