@@ -1,7 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Registrar fecha y hora exacta en que se inicia el proceso
   const inicio = new Date();
   const fechaInicioProceso = inicio.toLocaleString('es-CO');
+
+  // Banner elegante integrado en la página (sin popups alert del navegador)
+  const pageBanner = document.getElementById('pageBanner');
+  function mostrarMensajePagina(texto, tipo = 'error') {
+    pageBanner.className = `page-banner ${tipo}`;
+    pageBanner.innerText = texto;
+    pageBanner.style.display = 'block';
+    pageBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function ocultarMensajePagina() {
+    pageBanner.style.display = 'none';
+  }
 
   // Navegación Wizard
   const panels = document.querySelectorAll('.step-panel');
@@ -12,17 +23,71 @@ document.addEventListener('DOMContentLoaded', () => {
     pills.forEach(b => b.classList.remove('active'));
     document.getElementById(`step-${stepNum}`).classList.add('active');
     document.querySelector(`.step-pill[data-step="${stepNum}"]`).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   document.querySelectorAll('.next-step').forEach(btn => {
-    btn.addEventListener('click', () => goToStep(btn.dataset.next));
+    btn.addEventListener('click', () => {
+      ocultarMensajePagina();
+      goToStep(btn.dataset.next);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   });
   document.querySelectorAll('.prev-step').forEach(btn => {
-    btn.addEventListener('click', () => goToStep(btn.dataset.prev));
+    btn.addEventListener('click', () => {
+      ocultarMensajePagina();
+      goToStep(btn.dataset.prev);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   });
   pills.forEach(pill => {
-    pill.addEventListener('click', () => goToStep(pill.dataset.step));
+    pill.addEventListener('click', () => {
+      ocultarMensajePagina();
+      goToStep(pill.dataset.step);
+    });
+  });
+
+  // Tipo de Identificación: C.C., C.E. y Otro (con campo desplegable)
+  const radiosTipoId = document.querySelectorAll('input[name="tipoIdentificacion"]');
+  const otroTipoIdGroup = document.getElementById('otroTipoIdGroup');
+  const otroTipoInput = document.getElementById('otroTipoIdentificacion');
+
+  radiosTipoId.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'Otro' && radio.checked) {
+        otroTipoIdGroup.style.display = 'block';
+        otroTipoInput.setAttribute('required', 'true');
+        otroTipoInput.focus();
+      } else if (radio.checked) {
+        otroTipoIdGroup.style.display = 'none';
+        otroTipoInput.removeAttribute('required');
+        otroTipoInput.value = '';
+        otroTipoInput.classList.remove('field-invalid');
+      }
+    });
+  });
+
+  // Auto-relleno de Origen de Recursos desde el campo Actividad (en MAYÚSCULAS)
+  const actividadInput = document.getElementById('actividad');
+  const origenInput = document.getElementById('origenRecursos');
+  const spanOrigen = document.getElementById('spanOrigenRecursos');
+  let origenEditadoManual = false;
+
+  function sincronizarTextoOrigen() {
+    const val = origenInput.value.trim().toUpperCase();
+    spanOrigen.innerText = val || '________________________';
+  }
+
+  actividadInput.addEventListener('input', () => {
+    if (!origenEditadoManual) {
+      origenInput.value = actividadInput.value.toUpperCase();
+      sincronizarTextoOrigen();
+    }
+  });
+
+  origenInput.addEventListener('input', () => {
+    origenEditadoManual = true;
+    origenInput.value = origenInput.value.toUpperCase();
+    sincronizarTextoOrigen();
   });
 
   // Cálculo automático de Edad desde Fecha de Nacimiento
@@ -37,29 +102,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Carga de Cédula Frontal y Trasera
-  const boxFront = document.getElementById('boxFront');
-  const fileFront = document.getElementById('cedulaFrontal');
-  const boxBack = document.getElementById('boxBack');
-  const fileBack = document.getElementById('cedulaTrasera');
+  // Carga de Cédula Frontal y Trasera (Soporta Cámara Directa y Galería en Celular)
+  function configurarFotoDocumento(btnCamId, btnGalId, camInputId, mainInputId, previewId, txtId, boxId) {
+    const btnCam = document.getElementById(btnCamId);
+    const btnGal = document.getElementById(btnGalId);
+    const camInput = document.getElementById(camInputId);
+    const mainInput = document.getElementById(mainInputId);
+    const preview = document.getElementById(previewId);
+    const txt = document.getElementById(txtId);
+    const box = document.getElementById(boxId);
 
-  boxFront.addEventListener('click', () => fileFront.click());
-  boxBack.addEventListener('click', () => fileBack.click());
-  fileFront.addEventListener('change', (e) => previewImg(e, 'previewFront', 'txtFront'));
-  fileBack.addEventListener('change', (e) => previewImg(e, 'previewBack', 'txtBack'));
+    btnCam.addEventListener('click', (e) => {
+      e.stopPropagation();
+      camInput.click();
+    });
 
-  function previewImg(event, imgId, txtId) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = document.getElementById(imgId);
-      img.src = ev.target.result;
-      img.style.display = 'block';
-      document.getElementById(txtId).innerText = 'Cargada y lista para cifrar ✓';
-    };
-    reader.readAsDataURL(file);
+    btnGal.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mainInput.click();
+    });
+
+    function mostrarPreview(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        preview.src = ev.target.result;
+        preview.style.display = 'block';
+        txt.innerText = 'Cargada y lista para cifrar ✓';
+        box.classList.remove('field-invalid');
+        ocultarMensajePagina();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Cuando toma foto con cámara directa, transferimos el archivo al input principal del FormData
+    camInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      mainInput.files = dt.files;
+      mostrarPreview(file);
+    });
+
+    mainInput.addEventListener('change', (e) => {
+      mostrarPreview(e.target.files[0]);
+    });
   }
+
+  configurarFotoDocumento('btnCamFront', 'btnGalFront', 'camFront', 'cedulaFrontal', 'previewFront', 'txtFront', 'boxFront');
+  configurarFotoDocumento('btnCamBack', 'btnGalBack', 'camBack', 'cedulaTrasera', 'previewBack', 'txtBack', 'boxBack');
 
   // Cálculo: 1. Cuota Inicial + 2. Valor Solicitado = Valor de la Garantía (y regla >= 20%)
   const cuotaInput = document.getElementById('cuotaInicial');
@@ -128,16 +220,27 @@ document.addEventListener('DOMContentLoaded', () => {
     hasSigned = false;
   });
 
+  // Limpiar borde rojo al escribir en un campo
+  document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', () => el.classList.remove('field-invalid'));
+    el.addEventListener('change', () => el.classList.remove('field-invalid'));
+  });
+
   // Enviar código OTP por WhatsApp
   document.getElementById('btnSendOtp').addEventListener('click', async () => {
-    const celular = document.getElementById('telefonoCelular').value.trim();
+    const celularInput = document.getElementById('telefonoCelular');
+    const celular = celularInput.value.trim();
     const feedback = document.getElementById('otpFeedback');
+
     if (!celular) {
-      alert('Por favor ingresa primero tu número de celular en el Paso 1.');
       goToStep(1);
+      celularInput.classList.add('field-invalid');
+      mostrarMensajePagina('⚠️ Por favor ingresa primero tu número de celular en el Paso 1 para enviarte el código por WhatsApp.');
+      celularInput.focus();
       return;
     }
 
+    ocultarMensajePagina();
     const res = await fetch('/api/lite/enviar-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -149,19 +252,50 @@ document.addEventListener('DOMContentLoaded', () => {
       : data.mensaje;
   });
 
-  // Envío Final y Descarga del PDF Oficial
+  // Validación elegante en la página y Envío Final
   let generatedPdfBase64 = null;
   let generatedPdfName = 'Solicitud_Cepresta.pdf';
 
   document.getElementById('wizardForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    ocultarMensajePagina();
+
+    const camposRequeridos = e.target.querySelectorAll('[required]');
+    for (const campo of camposRequeridos) {
+      let vacio = false;
+      if (campo.type === 'checkbox') vacio = !campo.checked;
+      else if (campo.type === 'file') vacio = !campo.files || campo.files.length === 0;
+      else vacio = !campo.value.trim();
+
+      if (vacio) {
+        const panelPadre = campo.closest('.step-panel');
+        if (panelPadre) {
+          goToStep(panelPadre.id.replace('step-', ''));
+        }
+        const nombreCampo = campo.dataset.label || 'un campo obligatorio';
+
+        if (campo.id === 'cedulaFrontal') {
+          document.getElementById('boxFront').classList.add('field-invalid');
+        } else if (campo.id === 'cedulaTrasera') {
+          document.getElementById('boxBack').classList.add('field-invalid');
+        } else {
+          campo.classList.add('field-invalid');
+          campo.focus();
+        }
+
+        mostrarMensajePagina(`⚠️ Falta completar el campo obligatorio: "${nombreCampo}". Por favor diligéncialo para continuar.`);
+        return;
+      }
+    }
+
     if (!hasSigned) {
-      alert('Por favor realiza tu firma manuscrita en el recuadro antes de finalizar.');
+      mostrarMensajePagina('⚠️ Por favor realiza tu firma manuscrita en el recuadro antes de generar el PDF.');
+      canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
     btnSubmit.disabled = true;
-    btnSubmit.innerText = 'Cifrando cédulas, generando PDF y enviando correo...';
+    btnSubmit.innerText = 'Cifrando documento, generando PDF y enviando correo...';
 
     try {
       const formData = new FormData(e.target);
@@ -175,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await response.json();
 
       if (!result.success) {
-        alert(`⚠️ ${result.mensaje}`);
+        mostrarMensajePagina(`⚠️ ${result.mensaje}`);
         btnSubmit.disabled = false;
         btnSubmit.innerText = 'Finalizar y Generar PDF ➔';
         return;
@@ -189,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('finalMessage').innerText = result.mensaje;
       document.getElementById('finalScreen').style.display = 'block';
     } catch (err) {
-      alert('Error de conexión con el servidor.');
+      mostrarMensajePagina('⚠️ No se pudo conectar con el servidor en este momento. Intenta nuevamente.');
       btnSubmit.disabled = false;
       btnSubmit.innerText = 'Finalizar y Generar PDF ➔';
     }

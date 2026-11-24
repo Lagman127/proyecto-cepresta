@@ -5,6 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CEPRESTA S.A.S - Solicitud de Crédito Motos</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Banner de notificación elegante integrado en la página */
+    .page-banner {
+      display: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.4;
+      animation: fadeIn 0.25s ease;
+    }
+    .page-banner.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+    }
+    .page-banner.success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+    }
+    .field-invalid {
+      border-color: #dc2626 !important;
+      background-color: #fef2f2 !important;
+    }
+    .cam-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .btn-mini {
+      padding: 6px 10px;
+      font-size: 11.5px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e3a8a;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-mini:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
   <main class="container">
@@ -21,7 +72,10 @@
       <button type="button" class="step-pill" data-step="4">4. Firma y Envío</button>
     </nav>
 
-    <form id="wizardForm" enctype="multipart/form-data">
+    <!-- Banner de mensajes integrado en la página (sin popups del navegador) -->
+    <div id="pageBanner" class="page-banner" role="alert"></div>
+
+    <form id="wizardForm" enctype="multipart/form-data" novalidate>
       <!-- ================= PASO 1: DATOS BÁSICOS Y PERFIL ================= -->
       <section class="step-panel active" id="step-1">
         <h2>1. Datos Básicos y Perfil</h2>
@@ -37,7 +91,7 @@
         <div class="grid-3">
           <div class="form-group">
             <label for="primerApellido">Primer apellido *</label>
-            <input type="text" id="primerApellido" name="primerApellido" required>
+            <input type="text" id="primerApellido" name="primerApellido" data-label="Primer apellido" required>
           </div>
           <div class="form-group">
             <label for="segundoApellido">Segundo apellido</label>
@@ -45,7 +99,7 @@
           </div>
           <div class="form-group">
             <label for="nombres">Nombres *</label>
-            <input type="text" id="nombres" name="nombres" required>
+            <input type="text" id="nombres" name="nombres" data-label="Nombres" required>
           </div>
         </div>
 
@@ -53,7 +107,7 @@
           <div class="form-group">
             <label>Género *</label>
             <div class="radio-group">
-              <label class="radio-chip"><input type="radio" name="genero" value="Femenino" required> Femenino</label>
+              <label class="radio-chip"><input type="radio" name="genero" value="Femenino"> Femenino</label>
               <label class="radio-chip"><input type="radio" name="genero" value="Masculino" checked> Masculino</label>
             </div>
           </div>
@@ -62,48 +116,55 @@
             <div class="radio-group">
               <label class="radio-chip"><input type="radio" name="tipoIdentificacion" value="C.C." checked> C.C.</label>
               <label class="radio-chip"><input type="radio" name="tipoIdentificacion" value="C.E."> C.E.</label>
+              <label class="radio-chip"><input type="radio" name="tipoIdentificacion" value="Otro"> Otro</label>
             </div>
           </div>
           <div class="form-group">
             <label for="numeroIdentificacion">Número de identificación *</label>
-            <input type="text" id="numeroIdentificacion" name="numeroIdentificacion" required>
+            <input type="text" id="numeroIdentificacion" name="numeroIdentificacion" data-label="Número de identificación" required>
           </div>
+        </div>
+
+        <!-- Campo dinámico si elige "Otro" tipo de identificación -->
+        <div class="form-group" id="otroTipoIdGroup" style="display: none;">
+          <label for="otroTipoIdentificacion">Especifique el tipo de documento *</label>
+          <input type="text" id="otroTipoIdentificacion" name="otroTipoIdentificacion" data-label="Tipo de documento (Otro)" placeholder="Ej. Pasaporte, PPT, Permiso Especial, NIT">
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label for="fechaExpedicion">Fecha de expedición *</label>
-            <input type="date" id="fechaExpedicion" name="fechaExpedicion" required>
+            <input type="date" id="fechaExpedicion" name="fechaExpedicion" data-label="Fecha de expedición" required>
           </div>
           <div class="form-group">
             <label for="lugarExpedicion">Lugar de expedición *</label>
-            <input type="text" id="lugarExpedicion" name="lugarExpedicion" required>
+            <input type="text" id="lugarExpedicion" name="lugarExpedicion" data-label="Lugar de expedición" required>
           </div>
         </div>
 
         <div class="grid-4">
           <div class="form-group">
             <label for="fechaNacimiento">Fecha de nacimiento *</label>
-            <input type="date" id="fechaNacimiento" name="fechaNacimiento" required>
+            <input type="date" id="fechaNacimiento" name="fechaNacimiento" data-label="Fecha de nacimiento" required>
           </div>
           <div class="form-group">
             <label for="edad">Edad *</label>
-            <input type="number" id="edad" name="edad" readonly required>
+            <input type="number" id="edad" name="edad" data-label="Edad" readonly required>
           </div>
           <div class="form-group">
             <label for="lugarNacimiento">Lugar de nacimiento *</label>
-            <input type="text" id="lugarNacimiento" name="lugarNacimiento" required>
+            <input type="text" id="lugarNacimiento" name="lugarNacimiento" data-label="Lugar de nacimiento" required>
           </div>
           <div class="form-group">
             <label for="nacionalidad">Nacionalidad *</label>
-            <input type="text" id="nacionalidad" name="nacionalidad" value="Colombiana" required>
+            <input type="text" id="nacionalidad" name="nacionalidad" value="Colombiana" data-label="Nacionalidad" required>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label for="estadoCivil">Estado civil *</label>
-            <select id="estadoCivil" name="estadoCivil" required>
+            <select id="estadoCivil" name="estadoCivil" data-label="Estado civil" required>
               <option value="Soltero(a)">Soltero(a)</option>
               <option value="Casado(a)">Casado(a)</option>
               <option value="Unión libre">Unión libre</option>
@@ -114,7 +175,7 @@
           </div>
           <div class="form-group">
             <label for="nivelEstudios">Nivel de estudios *</label>
-            <select id="nivelEstudios" name="nivelEstudios" required>
+            <select id="nivelEstudios" name="nivelEstudios" data-label="Nivel de estudios" required>
               <option value="Primaria">Primaria</option>
               <option value="Secundaria">Secundaria</option>
               <option value="Técnico">Técnico</option>
@@ -129,7 +190,7 @@
         <div class="grid-2">
           <div class="form-group">
             <label for="ocupacion">Ocupación *</label>
-            <select id="ocupacion" name="ocupacion" required>
+            <select id="ocupacion" name="ocupacion" data-label="Ocupación" required>
               <option value="Empleado privado">Empleado privado</option>
               <option value="Empleado público">Empleado público</option>
               <option value="Independiente">Independiente</option>
@@ -141,18 +202,18 @@
           </div>
           <div class="form-group">
             <label for="actividad">Actividad *</label>
-            <input type="text" id="actividad" name="actividad" placeholder="Ej. Comercio / Transporte / Ingeniería" required>
+            <input type="text" id="actividad" name="actividad" data-label="Actividad" placeholder="Ej. Actividad Comercial / Transporte" required>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label for="fechaInicioActividad">Fecha de inicio de actividad *</label>
-            <input type="date" id="fechaInicioActividad" name="fechaInicioActividad" required>
+            <input type="date" id="fechaInicioActividad" name="fechaInicioActividad" data-label="Fecha de inicio de actividad" required>
           </div>
           <div class="form-group">
             <label for="personasCargo">Personas a cargo *</label>
-            <input type="number" id="personasCargo" name="personasCargo" value="0" min="0" required>
+            <input type="number" id="personasCargo" name="personasCargo" value="0" min="0" data-label="Personas a cargo" required>
           </div>
         </div>
 
@@ -168,47 +229,58 @@
           </div>
           <div class="form-group">
             <label for="direccionResidencia">Dirección de residencia *</label>
-            <input type="text" id="direccionResidencia" name="direccionResidencia" required>
+            <input type="text" id="direccionResidencia" name="direccionResidencia" data-label="Dirección de residencia" required>
           </div>
         </div>
 
         <div class="grid-3">
           <div class="form-group">
             <label for="barrio">Barrio *</label>
-            <input type="text" id="barrio" name="barrio" required>
+            <input type="text" id="barrio" name="barrio" data-label="Barrio" required>
           </div>
           <div class="form-group">
             <label for="ciudadResidencia">Ciudad de residencia *</label>
-            <input type="text" id="ciudadResidencia" name="ciudadResidencia" required>
+            <input type="text" id="ciudadResidencia" name="ciudadResidencia" data-label="Ciudad de residencia" required>
           </div>
           <div class="form-group">
             <label for="telefonoCelular">Teléfono celular (WhatsApp) *</label>
-            <input type="tel" id="telefonoCelular" name="telefonoCelular" placeholder="3000000000" required>
+            <input type="tel" id="telefonoCelular" name="telefonoCelular" data-label="Teléfono celular" placeholder="3000000000" required>
           </div>
         </div>
 
         <div class="form-group">
           <label for="emailPersonal">Email personal *</label>
-          <input type="email" id="emailPersonal" name="emailPersonal" required>
+          <input type="email" id="emailPersonal" name="emailPersonal" data-label="Email personal" required>
         </div>
 
-        <!-- Cédula Cifrada Ambos Lados -->
+        <!-- Documento de Identidad: Cámara directa o Galería en móvil -->
         <div class="form-group">
           <label>Documento de Identidad (Ambos Lados - Viaja Cifrado AES-256) *</label>
           <div class="id-upload-container">
-            <div class="upload-box" id="boxFront" tabindex="0" role="button">
-              <span>📷</span>
-              <p id="txtFront">Cédula Frontal</p>
+            <!-- Cara Frontal -->
+            <div class="upload-box" id="boxFront">
+              <p id="txtFront" style="font-weight: 700; color: #1e293b;">Cara Frontal</p>
+              <div class="cam-actions">
+                <button type="button" class="btn-mini" id="btnCamFront">📷 Cámara</button>
+                <button type="button" class="btn-mini" id="btnGalFront">🖼️ Galería</button>
+              </div>
               <img id="previewFront" class="preview-img" alt="Frontal">
             </div>
-            <input type="file" id="cedulaFrontal" name="cedulaFrontal" class="file-input" accept="image/*" required>
+            <!-- Inputs ocultos: uno con cámara directa y otro general/galería -->
+            <input type="file" id="camFront" accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="cedulaFrontal" name="cedulaFrontal" data-label="Foto frontal del documento" accept="image/jpeg,image/png,image/webp,image/*" style="display:none;" required>
 
-            <div class="upload-box" id="boxBack" tabindex="0" role="button">
-              <span>📸</span>
-              <p id="txtBack">Cédula Trasera</p>
+            <!-- Cara Trasera -->
+            <div class="upload-box" id="boxBack">
+              <p id="txtBack" style="font-weight: 700; color: #1e293b;">Cara Trasera</p>
+              <div class="cam-actions">
+                <button type="button" class="btn-mini" id="btnCamBack">📷 Cámara</button>
+                <button type="button" class="btn-mini" id="btnGalBack">🖼️ Galería</button>
+              </div>
               <img id="previewBack" class="preview-img" alt="Trasera">
             </div>
-            <input type="file" id="cedulaTrasera" name="cedulaTrasera" class="file-input" accept="image/*" required>
+            <input type="file" id="camBack" accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="cedulaTrasera" name="cedulaTrasera" data-label="Foto trasera del documento" accept="image/jpeg,image/png,image/webp,image/*" style="display:none;" required>
           </div>
         </div>
 
@@ -225,7 +297,7 @@
         <div class="grid-3">
           <div class="form-group">
             <label for="ingresosMensuales">Ingresos mensuales *</label>
-            <input type="number" id="ingresosMensuales" name="ingresosMensuales" min="0" required>
+            <input type="number" id="ingresosMensuales" name="ingresosMensuales" data-label="Ingresos mensuales" min="0" required>
           </div>
           <div class="form-group">
             <label for="otrosIngresos">Otros ingresos</label>
@@ -240,7 +312,7 @@
         <div class="grid-3">
           <div class="form-group">
             <label for="egresosMensuales">Egresos mensuales *</label>
-            <input type="number" id="egresosMensuales" name="egresosMensuales" min="0" required>
+            <input type="number" id="egresosMensuales" name="egresosMensuales" data-label="Egresos mensuales" min="0" required>
           </div>
           <div class="form-group">
             <label for="totalActivos">Total activos (bienes)</label>
@@ -262,16 +334,15 @@
       <section class="step-panel" id="step-3">
         <h2>3. Información del Crédito y Motocicleta</h2>
 
-        <!-- Orden solicitado: 1. Cuota inicial + 2. Valor solicitado = Valor de la garantía -->
         <div class="credit-calc-box">
           <div class="grid-3">
             <div class="form-group">
               <label for="cuotaInicial">1. Cuota inicial ($) *</label>
-              <input type="number" id="cuotaInicial" name="cuotaInicial" value="3000000" min="0" required>
+              <input type="number" id="cuotaInicial" name="cuotaInicial" data-label="Cuota inicial" value="3000000" min="0" required>
             </div>
             <div class="form-group">
               <label for="valorSolicitado">2. Valor solicitado ($) *</label>
-              <input type="number" id="valorSolicitado" name="valorSolicitado" value="5000000" min="100000" required>
+              <input type="number" id="valorSolicitado" name="valorSolicitado" data-label="Valor solicitado" value="5000000" min="100000" required>
             </div>
             <div class="form-group">
               <label for="valorGarantia">= Valor de la garantía ($)</label>
@@ -296,19 +367,18 @@
         <div class="grid-3">
           <div class="form-group">
             <label for="marcaMoto">Marca *</label>
-            <input type="text" id="marcaMoto" name="marcaMoto" placeholder="Ej. Yamaha / Bajaj" required>
+            <input type="text" id="marcaMoto" name="marcaMoto" data-label="Marca de la moto" placeholder="Ej. Yamaha / Bajaj" required>
           </div>
           <div class="form-group">
             <label for="referenciaMoto">Referencia *</label>
-            <input type="text" id="referenciaMoto" name="referenciaMoto" placeholder="Ej. FZ 250 / Boxer CT" required>
+            <input type="text" id="referenciaMoto" name="referenciaMoto" data-label="Referencia de la moto" placeholder="Ej. FZ 250 / Boxer CT" required>
           </div>
           <div class="form-group">
             <label for="modeloMoto">Modelo (año) *</label>
-            <input type="number" id="modeloMoto" name="modeloMoto" value="2026" min="2000" max="2030" required>
+            <input type="number" id="modeloMoto" name="modeloMoto" data-label="Modelo de la moto" value="2026" min="2000" max="2030" required>
           </div>
         </div>
 
-        <!-- Extra: Bloque opcional para referido / gestor -->
         <div class="referido-box">
           <div class="referido-header">
             <label for="toggleReferido">🤝 ¿Te refirió un asesor, comisionador o freelancer? (Opcional)</label>
@@ -339,17 +409,17 @@
         <h2>4. Autorización y Firma Digital</h2>
 
         <div class="form-group">
-          <label for="origenRecursos">Mis recursos provienen de *</label>
-          <input type="text" id="origenRecursos" name="origenRecursos" value="ACTIVIDAD COMERCIAL" required>
+          <label for="origenRecursos">Mis recursos provienen de * (Se auto-completa desde tu Actividad, editable)</label>
+          <input type="text" id="origenRecursos" name="origenRecursos" data-label="Origen de recursos" placeholder="Ej. ACTIVIDAD COMERCIAL" required>
         </div>
 
         <div class="legal-box">
           <h4>Declaración y autorización de consulta</h4>
           <div class="legal-scroll">
-            Declaro(mos) que la información suministrada en esta solicitud concuerda con la realidad y asumimos plena responsabilidad por la veracidad de la misma y certifico(mos) que mis (nuestros) recursos provienen de ACTIVIDAD COMERCIAL y en ningún caso provienen de actividades ilícitas. Autorizo(mos) irrevocablemente a CEPRESTA SAS, o a quien esta designe, para que verifique, procese, administre, archive, reporte, consulte y transmita información comercial y financiera que sobre el (los) suscrito(s), reciba, recolecte, o consulte a tercero(s) y/o centrales de riesgos. Lo anterior incluye visitas domiciliarias u otros medios de verificación. Hago (hacemos) constar que he (hemos) sido informado(s) del derecho a consultar mis (nuestros) datos personales y actualizarlos, rectificarlos, revocarlos y suprimirlos de conformidad con el Decreto 1377 de 2013, mediante solicitud dirigida al área de Operaciones de CEPRESTA SAS, al correo electrónico ceprestasas@gmail.com.
+            Declaro(mos) que la información suministrada en esta solicitud concuerda con la realidad y asumimos plena responsabilidad por la veracidad de la misma y certifico(mos) que mis (nuestros) recursos provienen de <strong id="spanOrigenRecursos" style="text-decoration: underline; color: #1e3a8a;">________________________</strong> y en ningún caso provienen de actividades ilícitas. Autorizo(mos) irrevocablemente a CEPRESTA SAS, o a quien esta designe, para que verifique, procese, administre, archive, reporte, consulte y transmita información comercial y financiera que sobre el (los) suscrito(s), reciba, recolecte, o consulte a tercero(s) y/o centrales de riesgos. Lo anterior incluye visitas domiciliarias u otros medios de verificación. Hago (hacemos) constar que he (hemos) sido informado(s) del derecho a consultar mis (nuestros) datos personales y actualizarlos, rectificarlos, revocarlos y suprimirlos de conformidad con el Decreto 1377 de 2013, mediante solicitud dirigida al área de Operaciones de CEPRESTA SAS, al correo electrónico ceprestasas@gmail.com.
           </div>
           <label class="check-legal">
-            <input type="checkbox" id="aceptoCentrales" name="aceptoCentrales" value="true" required>
+            <input type="checkbox" id="aceptoCentrales" name="aceptoCentrales" value="true" data-label="Autorización de consulta en centrales" required>
             He leído y acepto la declaración, y autorizo la consulta y reporte a centrales de riesgo.
           </label>
         </div>
@@ -357,15 +427,14 @@
         <div class="legal-box">
           <h4>Autorización de tratamiento de datos personales</h4>
           <div class="legal-scroll">
-            Declaro con la firma del presente documento lo siguiente: 1. Que me ha sido informado, conozco y acepto la Política de Tratamiento de Información y Datos Personales de COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS. 2. Que conozco el procedimiento y trámite para realizar de manera respetuosa cualquier tipo de consulta, queja y/o reclamo relacionado con el tratamiento de mis datos personales que presenté como titular de los mismos. 3. Que COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS es el responsable del tratamiento de los datos personales de los cuales soy titular y que por ende, podrá recolectar, transferir, almacenar, usar, circular, suprimir, compartir, actualizar y transmitir mis datos personales para el cumplimiento de los propósitos de la Firma consignados en su Política de Tratamiento de Datos Personales. 4. Que conozco mis derechos como titular de los datos personales previstos en la Constitución, la Ley y la Política de Tratamiento de la Información y Datos Personales de la Firma, especialmente el derecho a conocer, actualizar, rectificar y suprimir mi información personal, así como el derecho a revocar el consentimiento otorgado para el tratamiento de datos personales en cualquier momento. De igual forma, a solicitar información sobre el uso que se le ha dado a mis datos personales, y a presentar quejas cuando a ello haya lugar ante la Superintendencia de Industria y Comercio por el uso indebido de estos mismos. 5. Que, una vez otorgada la presente autorización, COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS estará facultada para enviarme información de contenido institucional o promocional que tenga que ver con los servicios prestados por la Firma, y demás información relativa al portafolio de servicios de ésta, a través de los medios idóneos facultados para ello. Conforme lo anterior, de manera libre, previa, expresa y voluntaria AUTORIZO a COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS para continuar con el tratamiento de los Datos Personales de los cuales soy titular, para las finalidades (i) a (v) descritas en el formato de solicitud.
+            Declaro con la firma del presente documento lo siguiente: 1. Que me ha sido informado, conozco y acepto la Política de Tratamiento de Información y Datos Personales de COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS. 2. Que conozco el procedimiento y trámite para realizar de manera respetuosa cualquier tipo de consulta, queja y/o reclamo relacionado con el tratamiento de mis datos personales que presenté como titular de los mismos. 3. Que COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS es el responsable del tratamiento de los datos personales de los cuales soy titular y que por ende, podrá recolectar, transferir, almacenar, usar, circular, suprimir, compartir, actualizar y transmitir mis datos personales para el cumplimiento de los propósitos de la Firma consignados en su Política de Tratamiento de Datos Personales. 4. Que conozco mis derechos como titular de los datos personales previstos en la Constitución, la Ley y la Política de Tratamiento de la Información y Datos Personales de la Firma, especialmente el derecho a conocer, actualizar, rectificar y suprimir mi información personal, así como el derecho a revocar el consentimiento otorgado para el tratamiento de datos personales en cualquier momento. De igual forma, a solicitar información sobre el uso que se le ha dado a mis datos personales, y a presentar quejas cuando a ello haya lugar ante la Superintendencia de Industria y Comercio por el uso indebido de estos mismos. 5. Que, una vez otorgada la presente autorización, COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS estará facultada para enviarme información de contenido institucional o promocional que tenga que ver con los servicios prestados por la Firma, y demás información relativa al portafolio de servicios de ésta, a través de los medios idóneos facultados para ello. Conforme lo anterior, de manera libre, previa, expresa y voluntaria AUTORIZO a COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS para continuar con el tratamiento de los Datos Personales de los cuales soy titular, para las finalidades (i) a (v) descritas en el formato de solicitud: (i) Facilitar los fines comerciales, corporativos, laborales, tributarios y contables de la Firma, (ii) Realizar los fines de mercadeo y publicidad con el propósito de ofrecer nuevos servicios de la Firma, lo que incluye el mantenimiento, actualización y custodia de la base de datos de clientes, empleados, ex empleados, contratistas de la empresa. (iii) Cumplir con los procesos administrativos internos para el manejo de contratistas y proveedores, y demás fines operativos de LA EMPRESA. (iv) Cumplir con la prestación de los servicios contratados por los clientes de LA EMPRESA enmarcados en el objeto social y de acuerdo con las solicitudes y necesidades de los clientes. (v) Cumplir con las demás finalidades que permitan el desarrollo de las actividades, funciones y operaciones comprendidas dentro del objeto social de LA EMPRESA y las otorgadas por la Ley.
           </div>
           <label class="check-legal">
-            <input type="checkbox" id="aceptoDatos" name="aceptoDatos" value="true" required>
+            <input type="checkbox" id="aceptoDatos" name="aceptoDatos" value="true" data-label="Autorización de tratamiento de datos" required>
             Autorizo de manera libre, previa, expresa y voluntaria el tratamiento de mis datos personales.
           </label>
         </div>
 
-        <!-- Firma manuscrita (Sin huella digital) -->
         <div class="form-group">
           <label>✍️ Firma manuscrita (Firme con el dedo o mouse) *</label>
           <canvas id="signaturePad" width="460" height="130"></canvas>
@@ -374,13 +443,12 @@
           </div>
         </div>
 
-        <!-- Validación por código WhatsApp para Firma Digital -->
         <div class="otp-box">
           <label for="codigoOtp">📲 Validación de Firma Digital por WhatsApp *</label>
           <p class="hint">Envía un código a tu WhatsApp registrado para validar tu firma electrónica.</p>
           <div class="otp-row">
             <button type="button" id="btnSendOtp" class="btn-secondary">Enviar código WhatsApp</button>
-            <input type="text" id="codigoOtp" name="codigoOtp" placeholder="Código de 6 dígitos" maxlength="6" required>
+            <input type="text" id="codigoOtp" name="codigoOtp" data-label="Código OTP de WhatsApp" placeholder="Código de 6 dígitos" maxlength="6" required>
           </div>
           <small id="otpFeedback" class="otp-msg"></small>
         </div>

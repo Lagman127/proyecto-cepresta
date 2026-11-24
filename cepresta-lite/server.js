@@ -18,7 +18,6 @@ fs.mkdirSync(SECURE_PDFS_DIR, { recursive: true });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '10mb' }));
 
-// Almacén temporal en memoria para códigos OTP de firma por celular
 const otpStore = new Map();
 
 const upload = multer({
@@ -40,7 +39,6 @@ function encryptAndSaveFile(buffer, originalName, prefix) {
   return fileName;
 }
 
-// Transporte de Correo
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: Number(process.env.SMTP_PORT) || 465,
@@ -51,7 +49,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Endpoint 1: Generar y enviar código OTP al WhatsApp del cliente para firma digital
+// Endpoint 1: Generar y enviar código OTP por WhatsApp para firma digital
 app.post('/api/lite/enviar-otp', (req, res) => {
   const { celular } = req.body;
   if (!celular) {
@@ -73,7 +71,7 @@ app.post('/api/lite/enviar-otp', (req, res) => {
   });
 });
 
-// Generador del PDF Oficial CEPRESTA S.A.S
+// Generador del PDF Oficial CEPRESTA S.A.S (2 Páginas exactas, sin referido, con textos legales completos y recuadro Comité)
 function generarPdfSolicitud(datos, radicado, fechaFirmaStr, hashSha256) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'LETTER', margin: 36 });
@@ -84,145 +82,199 @@ function generarPdfSolicitud(datos, radicado, fechaFirmaStr, hashSha256) {
     doc.on('error', reject);
 
     const fmtMoney = (val) => `$ ${Number(val || 0).toLocaleString('es-CO')}`;
+    const origenMayus = (datos.origenRecursos || datos.actividad || 'NO ESPECIFICADO').toUpperCase();
+    const tipoDocFinal = datos.tipoIdentificacion === 'Otro'
+      ? (datos.otroTipoIdentificacion || 'Otro').toUpperCase()
+      : datos.tipoIdentificacion;
 
-    // Encabezado Oficial
-    doc.rect(36, 36, 540, 52).fillAndStroke('#1e3a8a', '#1e3a8a');
+    // ==================== PÁGINA 1: DATOS DEL SOLICITANTE Y CRÉDITO ====================
+    doc.rect(36, 36, 540, 50).fillAndStroke('#1e3a8a', '#1e3a8a');
     doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold')
-       .text('SOLICITUD DE CRÉDITO MOTOS', 48, 46);
+       .text('SOLICITUD DE CRÉDITO MOTOS', 48, 45);
     doc.fontSize(10).font('Helvetica')
-       .text('CEPRESTA S.A.S  |  NIT: 900.784.733.4', 48, 65);
+       .text('CEPRESTA S.A.S  |  NIT: 900.784.733.4', 48, 63);
     doc.fontSize(9).font('Helvetica-Bold')
-       .text(`Radicado: ${radicado}`, 360, 48, { align: 'right', width: 204 });
+       .text(`Radicado: ${radicado}`, 350, 47, { align: 'right', width: 214 });
     doc.font('Helvetica')
-       .text(`Fecha: ${datos.fechaInicioProceso}`, 360, 64, { align: 'right', width: 204 });
+       .text(`Fecha: ${datos.fechaInicioProceso}`, 350, 63, { align: 'right', width: 214 });
 
-    doc.fillColor('#0f172a').moveDown(2.2);
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold')
+       .text(`Calidad del Solicitante:   [ ${datos.calidadSolicitante === 'Deudor' ? 'X' : ' '} ] Deudor      [ ${datos.calidadSolicitante === 'Codeudor' ? 'X' : ' '} ] Codeudor`, 36, 98);
 
-    // Calidad del solicitante
-    doc.fontSize(10).font('Helvetica-Bold')
-       .text(`Calidad del Solicitante: [ ${datos.calidadSolicitante === 'Deudor' ? 'X' : ' '} ] Deudor    [ ${datos.calidadSolicitante === 'Codeudor' ? 'X' : ' '} ] Codeudor`, 36, 100);
-
-    // Sección 1: Datos Básicos
-    doc.rect(36, 118, 540, 18).fill('#e2e8f0');
-    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('1. DATOS BÁSICOS Y PERFIL', 42, 123);
+    // 1. DATOS BÁSICOS
+    doc.rect(36, 116, 540, 18).fill('#e2e8f0');
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('1. DATOS BÁSICOS Y PERFIL', 42, 121);
 
     doc.fontSize(9).font('Helvetica');
     let y = 144;
     doc.text(`Primer Apellido: ${datos.primerApellido}`, 36, y);
-    doc.text(`Segundo Apellido: ${datos.segundoApellido || '-'}`, 210, y);
-    doc.text(`Nombres: ${datos.nombres}`, 380, y);
+    doc.text(`Segundo Apellido: ${datos.segundoApellido || '-'}`, 215, y);
+    doc.text(`Nombres: ${datos.nombres}`, 385, y);
 
-    y += 16;
-    doc.text(`Tipo ID: ${datos.tipoIdentificacion}   No. ${datos.numeroIdentificacion}`, 36, y);
-    doc.text(`Expedición: ${datos.fechaExpedicion} (${datos.lugarExpedicion})`, 210, y);
-    doc.text(`Género: ${datos.genero}`, 430, y);
+    y += 18;
+    doc.text(`Tipo ID: ${tipoDocFinal}   No. ${datos.numeroIdentificacion}`, 36, y);
+    doc.text(`Expedición: ${datos.fechaExpedicion} (${datos.lugarExpedicion})`, 215, y);
+    doc.text(`Género: ${datos.genero}`, 440, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Nacimiento: ${datos.fechaNacimiento} (${datos.lugarNacimiento})`, 36, y);
-    doc.text(`Edad: ${datos.edad} años`, 280, y);
-    doc.text(`Nacionalidad: ${datos.nacionalidad}`, 380, y);
+    doc.text(`Edad: ${datos.edad} años`, 285, y);
+    doc.text(`Nacionalidad: ${datos.nacionalidad}`, 385, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Estado Civil: ${datos.estadoCivil}`, 36, y);
-    doc.text(`Nivel Estudios: ${datos.nivelEstudios}`, 210, y);
-    doc.text(`Personas a Cargo: ${datos.personasCargo}`, 410, y);
+    doc.text(`Nivel Estudios: ${datos.nivelEstudios}`, 215, y);
+    doc.text(`Personas a Cargo: ${datos.personasCargo}`, 420, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Ocupación: ${datos.ocupacion}`, 36, y);
-    doc.text(`Actividad: ${datos.actividad}`, 210, y);
-    doc.text(`Inicio Actividad: ${datos.fechaInicioActividad}`, 410, y);
+    doc.text(`Actividad: ${datos.actividad}`, 215, y);
+    doc.text(`Inicio Actividad: ${datos.fechaInicioActividad}`, 420, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Tipo Vivienda: ${datos.tipoVivienda}`, 36, y);
-    doc.text(`Dirección: ${datos.direccionResidencia} - Barrio: ${datos.barrio}`, 180, y);
+    doc.text(`Dirección: ${datos.direccionResidencia} - Barrio: ${datos.barrio}`, 185, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Ciudad: ${datos.ciudadResidencia}`, 36, y);
-    doc.text(`Celular: ${datos.telefonoCelular}`, 210, y);
-    doc.text(`Email: ${datos.emailPersonal}`, 360, y);
+    doc.text(`Celular: ${datos.telefonoCelular}`, 215, y);
+    doc.text(`Email: ${datos.emailPersonal}`, 365, y);
 
-    // Sección 2: Datos Financieros
-    y += 24;
+    // 2. DATOS FINANCIEROS
+    y += 30;
     doc.rect(36, y, 540, 18).fill('#e2e8f0');
     doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('2. DATOS FINANCIEROS (COP)', 42, y + 5);
 
-    y += 24;
+    y += 26;
     doc.fontSize(9).font('Helvetica');
     doc.text(`Ingresos Mensuales: ${fmtMoney(datos.ingresosMensuales)}`, 36, y);
-    doc.text(`Otros Ingresos: ${fmtMoney(datos.otrosIngresos)}`, 220, y);
-    doc.text(`Origen Otros: ${datos.origenOtrosIngresos || 'N/A'}`, 390, y);
+    doc.text(`Otros Ingresos: ${fmtMoney(datos.otrosIngresos)}`, 225, y);
+    doc.text(`Origen Otros: ${datos.origenOtrosIngresos || 'N/A'}`, 395, y);
 
-    y += 16;
+    y += 18;
     doc.text(`Egresos Mensuales: ${fmtMoney(datos.egresosMensuales)}`, 36, y);
-    doc.text(`Total Activos: ${fmtMoney(datos.totalActivos)}`, 220, y);
-    doc.text(`Total Pasivos: ${fmtMoney(datos.totalPasivos)}`, 390, y);
+    doc.text(`Total Activos (Bienes): ${fmtMoney(datos.totalActivos)}`, 225, y);
+    doc.text(`Total Pasivos (Deudas): ${fmtMoney(datos.totalPasivos)}`, 395, y);
 
-    // Sección 3: Información del Crédito y Garantía
-    y += 24;
-    doc.rect(36, y, 540, 18).fill('#e2e8f0');
-    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('3. INFORMACIÓN SOBRE EL CRÉDITO Y GARANTÍA', 42, y + 5);
-
-    y += 24;
-    doc.fontSize(9).font('Helvetica-Bold');
-    doc.text(`1. Cuota Inicial: ${fmtMoney(datos.cuotaInicial)}`, 36, y);
-    doc.text(`2. Valor Solicitado: ${fmtMoney(datos.valorSolicitado)}`, 210, y);
-    doc.text(`= Valor Garantía: ${fmtMoney(datos.valorGarantia)}`, 390, y);
-
-    y += 16;
-    doc.font('Helvetica');
-    doc.text(`Plazo en Meses: ${datos.plazoMeses} meses`, 36, y);
-    doc.text(`Marca: ${datos.marcaMoto}`, 180, y);
-    doc.text(`Referencia: ${datos.referenciaMoto}`, 310, y);
-    doc.text(`Modelo: ${datos.modeloMoto}`, 470, y);
-
-    // Referido (si existe)
-    if (datos.referidoNombre || datos.referidoCedula) {
-      y += 20;
-      doc.rect(36, y, 540, 22).fillAndStroke('#eff6ff', '#93c5fd');
-      doc.fillColor('#1e3a8a').fontSize(9).font('Helvetica-Bold')
-         .text(`Referido / Gestor Comercial: ${datos.referidoNombre || 'N/A'}   |   Cédula: ${datos.referidoCedula || 'N/A'}`, 44, y + 7);
-      doc.fillColor('#0f172a');
-    }
-
-    // Sección 4: Autorizaciones Legales y Habeas Data
+    // 3. INFORMACIÓN SOBRE EL CRÉDITO
     y += 30;
     doc.rect(36, y, 540, 18).fill('#e2e8f0');
-    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('4. DECLARACIÓN, CONSULTA EN CENTRALES Y TRATAMIENTO DE DATOS', 42, y + 5);
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('3. INFORMACIÓN SOBRE EL CRÉDITO Y MOTOCICLETA', 42, y + 5);
 
-    y += 22;
-    doc.fontSize(7.3).font('Helvetica').fillColor('#334155');
-    const textoLegal =
-      `Origen de recursos: ${datos.origenRecursos}. Declaro(mos) que la información suministrada en esta solicitud concuerda con la realidad y asumimos plena responsabilidad por la veracidad de la misma. Autorizo(mos) irrevocablemente a CEPRESTA S.A.S (COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS), o a quien esta designe, para que verifique, procese, administre, archive, reporte, consulte y transmita información comercial y financiera a centrales de riesgos, incluyendo visitas domiciliarias. De conformidad con la Ley 1581 de 2012 y el Decreto 1377 de 2013, autorizo de manera libre, previa, expresa y voluntaria el tratamiento de mis datos personales para fines comerciales, operativos, contractuales y de mercadeo, pudiendo ejercer mis derechos de consulta, rectificación o supresión al correo ceprestasas@gmail.com.`;
-    doc.text(textoLegal, 36, y, { width: 540, align: 'justify' });
+    y += 26;
+    doc.fontSize(9.5).font('Helvetica-Bold');
+    doc.text(`1. Cuota Inicial: ${fmtMoney(datos.cuotaInicial)}`, 36, y);
+    doc.text(`2. Valor Solicitado: ${fmtMoney(datos.valorSolicitado)}`, 215, y);
+    doc.text(`= Valor de la Garantía: ${fmtMoney(datos.valorGarantia)}`, 390, y);
 
-    y = doc.y + 8;
+    y += 20;
+    doc.fontSize(9).font('Helvetica');
+    doc.text(`Plazo en Meses: ${datos.plazoMeses} meses`, 36, y);
+    doc.text(`Marca: ${datos.marcaMoto}`, 185, y);
+    doc.text(`Referencia: ${datos.referenciaMoto}`, 315, y);
+    doc.text(`Modelo: ${datos.modeloMoto}`, 475, y);
+
+    doc.fontSize(8).fillColor('#64748b').text('Páginas: 1/2', 36, 735, { align: 'right', width: 540 });
+
+    // ==================== PÁGINA 2: AUTORIZACIÓN COMPLETA, FIRMA Y USO EXCLUSIVO ====================
+    doc.addPage({ size: 'LETTER', margin: 36 });
+
+    doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold')
+       .text('CEPRESTA S.A.S  |  NIT: 900.784.733.4', 36, 36);
+    doc.fontSize(8.5).font('Helvetica').fillColor('#475569')
+       .text(`Radicado: ${radicado}`, 360, 36, { align: 'right', width: 216 });
+
+    doc.moveTo(36, 52).lineTo(576, 52).stroke('#cbd5e1');
+
+    // Título AUTORIZACIÓN
+    doc.fillColor('#0f172a').fontSize(11).font('Helvetica-Bold')
+       .text('AUTORIZACIÓN', 36, 62, { align: 'center', width: 540 });
+
+    // Párrafo 1: Declaración y autorización de consulta con origen de recursos subrayado
+    doc.fontSize(7.8).font('Helvetica').fillColor('#1e293b');
+    doc.text(
+      'Declaro(mos) que la información suministrada en esta solicitud concuerda con la realidad y asumimos plena responsabilidad por la veracidad de la misma y certifico(mos) que mis (nuestros) recursos provienen de ',
+      36, 82, { continued: true, width: 540, align: 'justify' }
+    );
+    doc.font('Helvetica-Bold').fillColor('#1e3a8a')
+       .text(`  ${origenMayus}  `, { continued: true, underline: true });
+    doc.font('Helvetica').fillColor('#1e293b')
+       .text(
+         ' y en ningún caso provienen de actividades ilícitas. Autorizo(mos) irrevocablemente a CEPRESTA SAS, o a quien esta designe, para que verifique, procese, administre, archive, reporte, consulte y transmita información comercial y financiera que sobre el (los) suscrito(s), reciba, recolecte, o consulte a tercero(s) y/o centrales de riesgos. Lo anterior incluye visitas domiciliarias u otros medios de verificación. Hago (hacemos) constar que he (hemos) sido informado(s) del derecho a consultar mis (nuestros) datos personales y actualizarlos, rectificarlos, revocarlos y suprimirlos de conformidad con el Decreto 1377 de 2013, mediante solicitud dirigida al área de Operaciones de CEPRESTA SAS, al correo electrónico ceprestasas@gmail.com.',
+         { align: 'justify' }
+       );
+
+    // Párrafo 2: Autorización de tratamiento de datos personales COMPLETO (1 a 5 y finalidades i a v)
+    doc.moveDown(0.7);
+    doc.fontSize(7.8).font('Helvetica').fillColor('#1e293b').text(
+      'Declaro con la firma del presente documento lo siguiente: 1. Que me ha sido informado, conozco y acepto la Política de Tratamiento de Información y Datos Personales de COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS. 2. Que conozco el procedimiento y trámite para realizar de manera respetuosa cualquier tipo de consulta, queja y/o reclamo relacionado con el tratamiento de mis datos personales que presenté como titular de los mismos. 3. Que COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS es el responsable del tratamiento de los datos personales de los cuales soy titular y que por ende, podrá recolectar, transferir, almacenar, usar, circular, suprimir, compartir, actualizar y transmitir mis datos personales para el cumplimiento de los propósitos de la Firma consignados en su Política de Tratamiento de Datos Personales. 4. Que conozco mis derechos como titular de los datos personales previstos en la Constitución, la Ley y la Política de Tratamiento de la Información y Datos Personales de la Firma, especialmente el derecho a conocer, actualizar, rectificar y suprimir mi información personal, así como el derecho a revocar el consentimiento otorgado para el tratamiento de datos personales en cualquier momento. De igual forma, a solicitar información sobre el uso que se le ha dado a mis datos personales, y a presentar quejas cuando a ello haya lugar ante la Superintendencia de Industria y Comercio por el uso indebido de estos mismos. 5. Que, una vez otorgada la presente autorización, COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS estará facultada para enviarme información de contenido institucional o promocional que tenga que ver con los servicios prestados por la Firma, y demás información relativa al portafolio de servicios de ésta, a través de los medios idóneos facultados para ello. Conforme lo anterior, de manera libre, previa, expresa y voluntaria AUTORIZO a COMPAÑÍA ESPECIAL DE PRÉSTAMOS SAS para continuar con el tratamiento de los Datos Personales de los cuales soy titular, para las finalidades (i) a (v) descritas en el formato de solicitud: (i) Facilitar los fines comerciales, corporativos, laborales, tributarios y contables de la Firma, (ii) Realizar los fines de mercadeo y publicidad con el propósito de ofrecer nuevos servicios de la Firma, lo que incluye el mantenimiento, actualización y custodia de la base de datos de clientes, empleados, ex empleados, contratistas de la empresa. (iii) Cumplir con los procesos administrativos internos para el manejo de contratistas y proveedores, y demás fines operativos de LA EMPRESA. (iv) Cumplir con la prestación de los servicios contratados por los clientes de LA EMPRESA enmarcados en el objeto social y de acuerdo con las solicitudes y necesidades de los clientes. (v) Cumplir con las demás finalidades que permitan el desarrollo de las actividades, funciones y operaciones comprendidas dentro del objeto social de LA EMPRESA y las otorgadas por la Ley.',
+      36, doc.y, { width: 540, align: 'justify' }
+    );
+
+    // Casillas de aceptación
+    let y2 = doc.y + 12;
     doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a');
-    doc.text('[ X ] He leído y acepto la declaración, y autorizo la consulta y reporte a centrales de riesgo.', 36, y);
-    y += 13;
-    doc.text('[ X ] Autorizo de manera libre, previa, expresa y voluntaria el tratamiento de mis datos personales.', 36, y);
+    doc.text('[ X ] He leído y acepto la declaración, y autorizo la consulta y reporte a centrales de riesgo.', 36, y2);
+    y2 += 14;
+    doc.text('[ X ] Autorizo de manera libre, previa, expresa y voluntaria el tratamiento de mis datos personales.', 36, y2);
 
-    // Firma Manuscrita + Validación OTP WhatsApp
-    y += 18;
-    doc.rect(36, y, 260, 72).stroke('#94a3b8');
+    // Firma Manuscrita + Constancia OTP WhatsApp
+    y2 += 20;
+    doc.rect(36, y2, 262, 82).stroke('#94a3b8');
     if (datos.firmaBase64 && datos.firmaBase64.startsWith('data:image/png;base64,')) {
       const imgBuffer = Buffer.from(datos.firmaBase64.replace(/^data:image\/png;base64,/, ''), 'base64');
-      doc.image(imgBuffer, 56, y + 4, { fit: [210, 44] });
+      doc.image(imgBuffer, 56, y2 + 4, { fit: [215, 48] });
     }
-    doc.fontSize(8).font('Helvetica')
-       .text(`Firma: ${datos.nombres} ${datos.primerApellido} - ${datos.tipoIdentificacion} ${datos.numeroIdentificacion}`, 42, y + 54);
+    doc.fontSize(8).font('Helvetica').fillColor('#0f172a')
+       .text(`Firma: ${datos.nombres} ${datos.primerApellido}`, 42, y2 + 56)
+       .text(`No. de documento de identidad: ${datos.tipoIdentificacion} ${datos.numeroIdentificacion} de ${datos.lugarExpedicion}`, 42, y2 + 67);
 
-    doc.rect(310, y, 266, 72).fillAndStroke('#f8fafc', '#cbd5e1');
+    doc.rect(310, y2, 266, 82).fillAndStroke('#f8fafc', '#cbd5e1');
     doc.fillColor('#0f172a').fontSize(8).font('Helvetica-Bold')
-       .text('CONSTANCIA DE FIRMA ELECTRÓNICA (OTP WHATSAPP)', 318, y + 8);
-    doc.font('Helvetica').fontSize(7.5)
-       .text(`Celular verificado: ${datos.telefonoCelular}`, 318, y + 22)
-       .text(`Código OTP validado: ${datos.codigoOtp}`, 318, y + 34)
-       .text(`Fecha y hora firma: ${fechaFirmaStr}`, 318, y + 46);
+       .text('CONSTANCIA DE FIRMA ELECTRÓNICA (OTP WHATSAPP)', 318, y2 + 10);
+    doc.font('Helvetica').fontSize(7.8)
+       .text(`Celular verificado: ${datos.telefonoCelular}`, 318, y2 + 26)
+       .text(`Código OTP validado: ${datos.codigoOtp}`, 318, y2 + 40)
+       .text(`Fecha y hora firma: ${fechaFirmaStr}`, 318, y2 + 54);
+
+    // Recuadro Oficial: PARA USO EXCLUSIVO DE CEPRESTA SAS (3 columnas en blanco para comité)
+    y2 += 96;
+    doc.rect(36, y2, 540, 20).fillAndStroke('#e2e8f0', '#64748b');
+    doc.fillColor('#0f172a').fontSize(9).font('Helvetica-Bold')
+       .text('PARA USO EXCLUSIVO DE CEPRESTA SAS', 36, y2 + 6, { align: 'center', width: 540 });
+
+    const yTabla = y2 + 20;
+    const altoTabla = 46;
+    // Borde exterior y divisiones de 3 columnas
+    doc.rect(36, yTabla, 540, altoTabla).stroke('#64748b');
+    doc.moveTo(190, yTabla).lineTo(190, yTabla + altoTabla).stroke('#64748b');
+    doc.moveTo(395, yTabla).lineTo(395, yTabla + altoTabla).stroke('#64748b');
+
+    // Columna 1: Documentación Completa
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a')
+       .text('Documentación Completa:', 44, yTabla + 8)
+       .text('Sí ____    No ____', 44, yTabla + 24);
+
+    // Columna 2: Comité de Crédito
+    doc.text('Comité de Crédito:', 198, yTabla + 8);
+
+    // Columna 3: Aprobado Sí [ ] No [ ] Archivo [ ]
+    doc.text('Aprobado', 404, yTabla + 8);
+    doc.font('Helvetica').text('Sí', 404, yTabla + 24);
+    doc.rect(418, yTabla + 23, 10, 10).stroke('#0f172a');
+
+    doc.text('No', 444, yTabla + 24);
+    doc.rect(460, yTabla + 23, 10, 10).stroke('#0f172a');
+
+    doc.text('Archivo', 486, yTabla + 24);
+    doc.rect(522, yTabla + 23, 10, 10).stroke('#0f172a');
 
     // Pie de página con SHA-256
-    y += 82;
+    const yPie = yTabla + altoTabla + 12;
     doc.fontSize(7).fillColor('#475569')
-       .text(`Constancia de firma electrónica - Radicado ${radicado} - Firmado el ${fechaFirmaStr} - Aceptó consulta centrales: Sí - Aceptó tratamiento datos: Sí - Código de integridad SHA-256: ${hashSha256}`, 36, y, { width: 540 });
+       .text(`Constancia de firma electrónica - Radicado ${radicado} Firmado el ${fechaFirmaStr} - Aceptó declaración y consulta en centrales: Sí - Aceptó tratamiento de datos: Sí - Código de integridad SHA-256: ${hashSha256}`, 36, yPie, { width: 540 });
+
+    doc.fontSize(8).fillColor('#64748b').text('Páginas: 2/2', 36, 735, { align: 'right', width: 540 });
 
     doc.end();
   });
@@ -294,7 +346,7 @@ app.post(
 
       otpStore.delete((d.telefonoCelular || '').trim());
 
-      // 6. Enviar correo automático con PDF adjunto (sin bloquear la descarga si SMTP no está configurado)
+      // 6. Enviar correo automático con PDF adjunto (Referido va debajo de la constancia electrónica y huella SHA-256)
       let correoEnviado = false;
       const tieneSmtpValido =
         process.env.SMTP_USER &&
@@ -306,25 +358,36 @@ app.post(
         try {
           const nombreCompleto = `${d.nombres} ${d.primerApellido} ${d.segundoApellido || ''}`.trim();
           const bloqueReferido = (d.referidoNombre || d.referidoCedula)
-            ? `<p><strong>👤 Persona que refiere (Asesor/Comisionador/Freelancer):</strong> ${d.referidoNombre || 'No especificado'} — <strong>Cédula:</strong> ${d.referidoCedula || 'No especificada'}</p>`
-            : `<p><strong>👤 Referido:</strong> Solicitud directa (sin referido)</p>`;
+            ? `<div style="background: #eff6ff; border-left: 4px solid #1e3a8a; padding: 10px 14px; margin-top: 14px;">
+                <strong>🤝 Referido por (Asesor / Comisionador / Freelancer):</strong><br>
+                Nombre: ${d.referidoNombre || 'No especificado'}<br>
+                Cédula: ${d.referidoCedula || 'No especificada'}
+               </div>`
+            : `<p style="margin-top: 14px; color: #64748b;"><strong>🤝 Referido por:</strong> Solicitud directa (sin referido)</p>`;
+
+          const tipoDocFinal = d.tipoIdentificacion === 'Otro'
+            ? (d.otroTipoIdentificacion || 'Otro').toUpperCase()
+            : d.tipoIdentificacion;
 
           await transporter.sendMail({
             from: `"Cepresta Solicitudes" <${process.env.SMTP_USER}>`,
             to: process.env.NOTIFY_EMAIL_TO || 'ceprestasas@gmail.com',
             subject: `Nueva Solicitud de Crédito Moto - ${nombreCompleto} (${radicado})`,
             html: `
-              <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px;">
-                <h2 style="color: #1e3a8a;">Nueva Solicitud de Crédito Radicada</h2>
+              <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 620px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                <h2 style="color: #1e3a8a; margin-top: 0;">Nueva Solicitud de Crédito Radicada</h2>
                 <p><strong>Radicado:</strong> ${radicado}</p>
-                <p><strong>Nombre del Cliente:</strong> ${nombreCompleto} (${d.tipoIdentificacion} ${d.numeroIdentificacion})</p>
+                <p><strong>Nombre del Cliente:</strong> ${nombreCompleto} (${tipoDocFinal}} ${d.numeroIdentificacion})</p>
                 <p><strong>Fecha y Hora de Inicio del Proceso:</strong> ${d.fechaInicioProceso}</p>
-                <p><strong>Fecha y Hora de Firma Electrónica:</strong> ${fechaFirmaStr}</p>
-                ${bloqueReferido}
-                <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0;">
                 <p><strong>Cuota Inicial:</strong> $${cuotaInicial.toLocaleString('es-CO')} | <strong>Valor Solicitado:</strong> $${valorSolicitado.toLocaleString('es-CO')} | <strong>Valor Garantía:</strong> $${valorGarantia.toLocaleString('es-CO')}</p>
-                <p style="font-size: 12px; color: #475569;">🔒 Cédulas cifradas AES-256 en servidor privado: <code>${encFront}</code> y <code>${encBack}</code></p>
-                <p>Se adjunta el formulario oficial en PDF firmado electrónicamente.</p>
+                <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0;">
+                <p style="font-size: 12px; color: #334155;">
+                  <strong>Constancia de firma electrónica:</strong> Firmado el ${fechaFirmaStr} mediante OTP WhatsApp (${d.telefonoCelular})<br>
+                  <strong>Código de integridad SHA-256:</strong> <code>${hashSha256}</code>
+                </p>
+                ${bloqueReferido}
+                <p style="font-size: 12px; color: #475569; margin-top: 14px;">🔒 Cédulas cifradas AES-256 en servidor privado: <code>${encFront}</code> y <code>${encBack}</code></p>
+                <p>Se adjunta el formato oficial de solicitud en PDF.</p>
               </div>
             `,
             attachments: [
@@ -341,7 +404,6 @@ app.post(
         }
       }
 
-      // 7. Devolver PDF en Base64 para descarga inmediata en el navegador
       return res.json({
         success: true,
         radicado,
@@ -351,7 +413,7 @@ app.post(
         mensaje: `Solicitud ${radicado} radicada con éxito. ${
           correoEnviado
             ? 'Enviada por correo automáticamente.'
-            : 'PDF generado y listo para descargar.'
+            : 'PDF oficial generado y listo para descargar.'
         }`
       });
     } catch (error) {
